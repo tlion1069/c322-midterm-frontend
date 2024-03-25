@@ -1,11 +1,160 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
-</head>
-<body>
-  
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <link rel="stylesheet" href="navbar.css">
+  </head>
+
+  <body onload="loadAll()">
+    <link rel="stylesheet" href="make-a-quiz.css">
+    <link rel="stylesheet" href="cards.css">
+    <link rel="stylesheet" href="general.css">
+    <ul class="topnav">
+      <li><a class="active" href="index.html">Home</a></li>
+      <li><a href="add-question.html">Add questions</a></li>
+      <li><a href="make-a-quiz.html">Create a quiz</a></li>
+      <li><a href="take-a-quiz.html">Take a quiz</a></li>
+      <li class="right"><a href="#about">About</a></li>
+    </ul>
+    <div class="questions">
+      <div class="cards" id="cards"></div>
+    </div>
+    <div class="quiz">
+      <h3 id="numberOfQuestions"><b>The new quiz (0 questions)</b></h3>
+      Quiz Title: <input id="titleInput"><br /> <br />
+      <button onclick="save(0)">Save Your Changes</button><br /> <br />
+      <button onclick="save(1)">Save This Quiz and Start a New One</button>
+      <h4><b>If you want to remove a question from the quiz, you can click on the question here and it will be removed from the quiz.</b></h4>
+      <div class="cards" id="choices"></div>
+    </div>
+   
+  </body>
+  <script>
+    let host = "http://localhost:8080/";
+    let questions = [];
+    let chose = [];
+    let quizId = -1;
+    async function getAllQuestions(){
+      let request = {
+        method: "GET",
+      };
+      let response = await fetch(host + "questions", request);
+      questions = await response.json();
+    }
+    async function loadAll(){
+      if(questions.length == 0){
+        await getAllQuestions();
+      }
+      let cards = document.getElementById("cards");
+      cards.innerHTML = "";
+      for(question of questions){
+        if(!chose.includes(question.id)){
+        let card = document.createElement("div");
+        card.className = "card";
+        let innerHtml = `
+         
+        <img src="http://localhost:8080/questions/${question.id}/image" alt="question" style="width:100%">
+        <div class="container" onclick="add(${question.id})">
+          <h4><b>${question.id}</b></h4> 
+          <p>${question.description}</p>
+          <form>
+              <input type="radio" id="q${question.id}OptionA" name="q2Answer" value="A">
+              <label for="q${question.id}ptionA">${question.choices[0]}</label><br>
+
+              <input type="radio" id="q${question.id}OptionB" name="q2Answer" value="B">
+              <label for="q${question.id}ptionB">${question.choices[1]}</label><br>
+
+              <input type="radio" id="q${question.id}OptionC" name="q2Answer" value="C">
+              <label for="q${question.id}ptionC">${question.choices[2]}</label><br>       
+          </form> 
+        </div>
+            `;
+            card.innerHTML = innerHtml;
+            cards.appendChild(card);
+      }
+      }
+    }
+    function add(id){
+        chose.push(id);
+        loadAll();
+        updateCurrentChoice();
+      }
+    function updateCurrentChoice(){
+      let cards = document.getElementById("choices");
+      cards.innerHTML ="";
+      for(choice of chose){
+        let question = find(choice);
+        let card = document.createElement("div");
+        card.className = "card";
+        let innerHtml = `
+         
+        <img src="http://localhost:8080/questions/${question.id}/image" alt="question" style="width:100%">
+        <div class="container" onclick="remove(${question.id})">
+          <h4><b>${question.id}</b></h4> 
+          <p>${question.description}</p>
+          <form>
+              <input type="radio" id="q${question.id}OptionA" name="q2Answer" value="A">
+              <label for="q${question.id}ptionA">${question.choices[0]}</label><br>
+
+              <input type="radio" id="q${question.id}OptionB" name="q2Answer" value="B">
+              <label for="q${question.id}ptionB">${question.choices[1]}</label><br>
+
+              <input type="radio" id="q${question.id}OptionC" name="q2Answer" value="C">
+              <label for="q${question.id}ptionC">${question.choices[2]}</label><br>       
+          </form> 
+        </div>
+            `;
+            card.innerHTML = innerHtml;
+            cards.appendChild(card);
+      }
+    }
+    function find(id){
+      for(question of questions){
+        if(question.id == id){
+          return question;
+        }
+      }
+    }
+    function remove(id){
+      for(choseId in chose){
+        if(find(chose[choseId]).id == id){
+          chose.splice(choseId, 1);
+          break;
+        }
+      }
+      loadAll();
+        updateCurrentChoice();
+    }
+    async function save(type){
+      let quizTitle = document.getElementById("titleInput").value;
+      let url = "";
+      let quiz = {
+        quizTitle: quizTitle,
+        questionIds: chose
+      }
+      let request = {
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(quiz)
+        };
+      if(quizId == -1){
+        request.method = "POST";
+        url = host + "quizzes";
+      }
+      else {
+        request.method = "PUT";
+        url = host + "quizzes/" + quizId;
+      }
+
+      let response = await fetch(url, request);
+      let result = await response.json();
+      if(quizId == -1){quizId = result;}
+      if(type == 1){
+        location.reload();
+      }
+    }
+  </script>
 </html>

@@ -1,11 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
-</head>
-<body>
-  
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <link rel="stylesheet" href="navbar.css">
+  </head>
+
+  <body onload="loadAll()">
+    <link rel="stylesheet" href="make-a-quiz.css">
+    <link rel="stylesheet" href="cards.css">
+    <link rel="stylesheet" href="general.css">
+    <ul class="topnav" id="menuBar">
+      <li><a class="active" href="index.html">Home</a></li>
+      <li><a href="add-question.html">Add questions</a></li>
+      <li><a href="make-a-quiz.html">Create a quiz</a></li>
+      <li><a href="take-a-quiz.html">Take a quiz</a></li>
+      <li class="right"><a href="#about">About</a></li>
+    </ul>
+    <h4><b>Here are the list of all available quizzes. Click on a quiz to start taking the quiz.</b></h4>
+    <div class="cards" id="cards">
+      
+    </div>
+   
+  </body>
+  <script>
+    let host = "http://localhost:8080";
+    let quizzes = [];
+    async function loadAll(){
+      if(quizzes.length == 0){
+        await getAllQuizzes();
+        console.log(quizzes);
+      }
+      let cards = document.getElementById("cards");
+      for(quiz of quizzes){
+        let card = document.createElement("div");
+        card.className = "card";
+        let innerHtml = `
+         
+        <div class="container" onclick="quiz(${quiz.id})">
+          <b>${quiz.id}</b><br/><br/>
+          ${quiz.title}<br/><br/>
+          (${quiz.questionIds.length} questions)
+        </div>
+            `;
+        card.innerHTML = innerHtml;
+        cards.appendChild(card);
+      }
+    }
+    async function getAllQuizzes(){
+      let request = {
+        method: "GET"
+      }
+      let response = await fetch(host + "/quizzes", request);
+      quizzes = await response.json();
+      console.log(quizzes);
+    }
+    function quiz(id){
+      let quiz = quizzes[id - 1];
+      let menuBar = document.getElementById("menuBar");
+      let finish = false;
+      menuBar.style.visibility = "hidden";
+      let currentQuestion = 0;
+        let question = quiz.questions[currentQuestion];
+        let card = document.createElement("div");
+        card.innerHTML = `
+         
+         <img src="http://localhost:8080/questions/${question.id}/image" alt="question" style="width:100%">
+         <div class="container" onclick="add(${question.id})">
+           <h4><b>${question.id}</b></h4> 
+           <p>${question.description}</p>
+           <form>
+               <input type="radio" id="q${question.id}OptionA" name="q2Answer" value="A">
+               <label for="q${question.id}ptionA">${question.choices[0]}</label><br>
+ 
+               <input type="radio" id="q${question.id}OptionB" name="q2Answer" value="B">
+               <label for="q${question.id}ptionB">${question.choices[1]}</label><br>
+ 
+               <input type="radio" id="q${question.id}OptionC" name="q2Answer" value="C">
+               <label for="q${question.id}ptionC">${question.choices[2]}</label><br>       
+           </form> 
+           <button id="prev" style="location: absolute">Previous</button>
+         </div>
+             `;
+      }
+  </script>
 </html>
