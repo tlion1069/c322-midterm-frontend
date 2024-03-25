@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="make-a-quiz.css">
     <link rel="stylesheet" href="cards.css">
     <link rel="stylesheet" href="general.css">
+    <link rel="stylesheet" href="quiz.css">
     <ul class="topnav" id="menuBar">
       <li><a class="active" href="index.html">Home</a></li>
       <li><a href="add-question.html">Add questions</a></li>
@@ -18,19 +19,25 @@
       <li><a href="take-a-quiz.html">Take a quiz</a></li>
       <li class="right"><a href="#about">About</a></li>
     </ul>
-    <h4><b>Here are the list of all available quizzes. Click on a quiz to start taking the quiz.</b></h4>
+    <h4 id="title"><b>Here are the list of all available quizzes. Click on a quiz to start taking the quiz.</b></h4>
     <div class="cards" id="cards">
       
     </div>
-   
+    <div class="screen" id="quiz" style="visibility: hidden;">
+      
+    </div>
+
   </body>
   <script>
     let host = "http://localhost:8080";
     let quizzes = [];
+    let current = 1;
+    let maxsize = 0;
+    let answer = [];
+    let score = 0;
     async function loadAll(){
       if(quizzes.length == 0){
         await getAllQuizzes();
-        console.log(quizzes);
       }
       let cards = document.getElementById("cards");
       for(quiz of quizzes){
@@ -38,7 +45,7 @@
         card.className = "card";
         let innerHtml = `
          
-        <div class="container" onclick="quiz(${quiz.id})">
+        <div class="container" onclick="startQuiz(${quiz.id})">
           <b>${quiz.id}</b><br/><br/>
           ${quiz.title}<br/><br/>
           (${quiz.questionIds.length} questions)
@@ -54,20 +61,32 @@
       }
       let response = await fetch(host + "/quizzes", request);
       quizzes = await response.json();
-      console.log(quizzes);
     }
-    function quiz(id){
+
+    function startQuiz(id){
       let quiz = quizzes[id - 1];
       let menuBar = document.getElementById("menuBar");
-      let finish = false;
       menuBar.style.visibility = "hidden";
-      let currentQuestion = 0;
-        let question = quiz.questions[currentQuestion];
+      document.getElementById("title").style.visibility = "hidden";
+      document.getElementById("cards").style.visibility = "hidden";
+      document.getElementById("quiz").style.visibility = "visible";
+      maxsize = quiz.questions.length;
+      for(i in Array(maxsize)){
+        answer[i] = "";
+      }
+      displayQuiz(id);
+      document.getElementById("prev").style.visibility = "hidden";
+      }
+      function displayQuiz(id){
+        let quiz = quizzes[id - 1];
+        let question = quiz.questions[current - 1];
         let card = document.createElement("div");
+        let screen = document.getElementById("quiz")
+        screen.innerHTML = "";
         card.innerHTML = `
          
          <img src="http://localhost:8080/questions/${question.id}/image" alt="question" style="width:100%">
-         <div class="container" onclick="add(${question.id})">
+         <div class="container">
            <h4><b>${question.id}</b></h4> 
            <p>${question.description}</p>
            <form>
@@ -80,9 +99,69 @@
                <input type="radio" id="q${question.id}OptionC" name="q2Answer" value="C">
                <label for="q${question.id}ptionC">${question.choices[2]}</label><br>       
            </form> 
-           <button id="prev" style="location: absolute">Previous</button>
          </div>
+         <div class="controls">
+        <input type="submit" onclick="prev(${id})" id="prev" value="Previous">
+        <h6>(Question ${current} out of ${quiz.questions.length})</h6>
+        <input type="submit" onclick="next(${id})" value="Next" />
+      </div>
              `;
+             screen.appendChild(card);
+             if(current == 1){
+          document.getElementById("prev").style.visibility = "hidden";
+        }
+      }
+      function next(id){
+        addAnswer(id, current);
+        if(current == 0){
+          document.getElementById("prev").style.visibility = "visible";
+        }
+        if(current + 1 <= maxsize){
+          current = current + 1;
+          displayQuiz(id);
+        }
+        else{
+          displayResult(id);
+        }
+      }
+      function prev(id){
+        addAnswer(id, current);
+        current = current - 1;
+        displayQuiz(id);
+      }
+      function addAnswer(id, current){
+        let choice = document.querySelector('input[name="q2Answer"]:checked').value;
+        let quiz = quizzes[id - 1];
+        let question = quiz.questions[current - 1];
+        switch (choice) {
+          case "A":
+          answer[current - 1] = question.choices[0];
+            break;
+          case "B":
+          answer[current - 1] = question.choices[1];
+            break;
+          case "C":
+          answer[current - 1] = question.choices[2];
+            break;
+        }
+      }
+      function displayResult(id){
+        score = 0;
+        let quiz = quizzes[id - 1];
+        for(ans in answer){
+          let question = quiz.questions[ans];
+          if(answer[ans] == question.answer){
+            score = score + 1;
+          }
+        }
+        document.getElementById("quiz").style.display = "none";
+        document.getElementById("menuBar").style.visibility = "visible";
+        let cards = document.getElementById("cards");
+        cards.innerHTML = `
+          <b>You completed the quiz ${quiz.title}.</b><br/>
+          <b>You scored ${score} out of ${maxsize}.</b>
+        `;
+        cards.style.visibility = "visible";
       }
   </script>
 </html>
